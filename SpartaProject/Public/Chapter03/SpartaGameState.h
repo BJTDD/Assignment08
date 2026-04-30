@@ -9,6 +9,18 @@
 class USpartaGameInstance;
 class ASpartaPlayerController;
 
+USTRUCT(BlueprintType)
+struct FWaveInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	float Duration = 30.0f;
+
+	UPROPERTY(EditAnywhere)
+	int32 ItemCount = 40;
+};
+
 UCLASS()
 class SPARTAPROJECT_API ASpartaGameState : public AGameState
 {
@@ -38,6 +50,10 @@ public:
 	void EndLevel();
 
 	void UpdateHUD();
+
+	void StartWave();
+	void OnWaveTimeUp();
+	void EndWave();
 
 protected:
 	// 전역 점수를 저장하는 변수
@@ -73,10 +89,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<ASpartaPlayerController> CachedPlayerController;
 
-	// 이미 지급한 보상 임계값을 추적
-	// 50점 보상을 줬으면 50이 들어가고, 100점 보상을 줬으면 100도 들어감
-	TSet<int32> RewardedThresholds;
 
-private:
-	void CheckScoreRewards();
+	UPROPERTY(EditAnywhere, Category = "Wave")
+	TArray<FWaveInfo> Waves;
+
+	int32 CurrentWaveIndex;;
 };

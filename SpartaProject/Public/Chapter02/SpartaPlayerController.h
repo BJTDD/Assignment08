@@ -64,6 +64,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void ToggleMenu();
 
+	void QuitGame();
+
 protected:
 	virtual void BeginPlay() override;
 

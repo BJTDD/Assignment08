@@ -9,6 +9,7 @@
 #include "EnhancedInputComponent.h"
 #include "Blueprint/UserWidget.h" 
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 
@@ -82,46 +83,71 @@ void ASpartaPlayerController::ShowMainMenu(bool bIsRestart, bool bIsGameOver)
 		if (MainMenuWidgetInstance)
 		{
 			MainMenuWidgetInstance->AddToViewport();
-
 			bShowMouseCursor = true;
 			FInputModeGameAndUI InputMode;
 			InputMode.SetHideCursorDuringCapture(false);
 			SetInputMode(InputMode);
 		}
 
-		// 버튼 가져오기
+		// 위젯 가져오기
 		UWidget* StartBtn = MainMenuWidgetInstance->GetWidgetFromName(TEXT("StartButton"));
 		UWidget* RestartBtn = MainMenuWidgetInstance->GetWidgetFromName(TEXT("RestartButton"));
+		UWidget* QuitBtn = MainMenuWidgetInstance->GetWidgetFromName(TEXT("QuitButton"));
+		UTextBlock* TitleText = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName(TEXT("TitleText")));
+		UWidget* TotalScoreText = MainMenuWidgetInstance->GetWidgetFromName(TEXT("TotalScoreText"));
 
 		if (bIsRestart)
 		{
-			if (StartBtn) StartBtn->SetIsEnabled(false);
-			if (RestartBtn) RestartBtn->SetIsEnabled(true);
+			// Tab 또는 게임오버: Start 숨기고 Restart, Quit 보이기
+			if (StartBtn) StartBtn->SetVisibility(ESlateVisibility::Collapsed);
+			if (RestartBtn) RestartBtn->SetVisibility(ESlateVisibility::Visible);
+			if (QuitBtn) QuitBtn->SetVisibility(ESlateVisibility::Visible);
 		}
 		else
 		{
-			if (StartBtn) StartBtn->SetIsEnabled(true);
-			if (RestartBtn) RestartBtn->SetIsEnabled(false);
+			// 첫 시작: Start만 보이기
+			if (StartBtn) StartBtn->SetVisibility(ESlateVisibility::Visible);
+			if (RestartBtn) RestartBtn->SetVisibility(ESlateVisibility::Collapsed);
+			if (QuitBtn) QuitBtn->SetVisibility(ESlateVisibility::Visible);
 		}
 
 		// 게임오버일 때만 애니메이션, 점수 표시
 		if (bIsGameOver)
 		{
+			// 타이틀 → Game Over
+			if (TitleText) TitleText->SetText(FText::FromString(TEXT("Game Over")));
+
 			UFunction* PlayAnimFunc = MainMenuWidgetInstance->FindFunction(FName("PlayGameOverAnim"));
 			if (PlayAnimFunc)
 			{
 				MainMenuWidgetInstance->ProcessEvent(PlayAnimFunc, nullptr);
 			}
 
-			if (UTextBlock* TotalScoreText = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName("TotalScoreText")))
+			// 점수 표시
+			if (TotalScoreText) TotalScoreText->SetVisibility(ESlateVisibility::Visible);
+			if (UTextBlock* ScoreText = Cast<UTextBlock>(TotalScoreText))
 			{
 				if (USpartaGameInstance* SpartaGameInstance = Cast<USpartaGameInstance>(UGameplayStatics::GetGameInstance(this)))
 				{
-					TotalScoreText->SetText(FText::FromString(
+					ScoreText->SetText(FText::FromString(
 						FString::Printf(TEXT("Total Score: %d"), SpartaGameInstance->TotalScore)
 					));
 				}
 			}
+		}
+		else
+		{
+			// 타이틀 → 게임 이름
+			if (TitleText)
+			{
+				TitleText->SetText(FText::FromString(TEXT("Sparta Game")));
+				TitleText->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.84f, 0.0f)));
+
+				FSlateFontInfo FontInfo = TitleText->GetFont();
+				FontInfo.Size = 92;
+				TitleText->SetFont(FontInfo);
+			}
+			if (TotalScoreText) TotalScoreText->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }
@@ -203,4 +229,9 @@ void ASpartaPlayerController::ToggleMenu()
 	}
 
 	ShowMainMenu(true, false);
+}
+
+void ASpartaPlayerController::QuitGame()
+{
+	UKismetSystemLibrary::QuitGame(GetWorld(), this, EQuitPreference::Quit, false);
 }
